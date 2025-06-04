@@ -1,9 +1,6 @@
-import os
-from dotenv import load_dotenv
+import os, time, json
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
-load_dotenv()
-
-client_id = os.getenv("CLIENT_ID")
-client_secret = os.getenv("PRIMERY_CLIENT_SECRET")
-redirect_uri = 'https://oauth.pstmn.io/v1/browser-callback'
-scope = 'w_member_social openid profile email'
+login_url = 'https://www.linkedin.com/login'
+job_url = 'https://www.linkedin.com/jobs/search/?currentJobId=4239957113&origin=JOB_SEARCH_PAGE_SEARCH_BUTTON&refresh=true'
