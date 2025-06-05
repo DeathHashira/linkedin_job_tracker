@@ -4,8 +4,8 @@ from ui.ui_driver import driver
 from ui import login_automation
 
 scope = {
-    'title': [],
-    'skill': [],
+    'title': ['backend', 'data'],
+    'skill': ['python', 'node.js'],
     'company': []
 }
 
@@ -55,14 +55,9 @@ def go_to_job_url():
         
 def search():
     go_to_job_url()
-    print("hello")
-    country_field = driver.find_element(By.ID, 'jobs-search-box-location-id-ember32')
-    search_field = driver.find_element(By.ID, 'jobs-search-box-keyword-id-ember32')
-    search_botton = driver.find_element(By.XPATH, '/html/body/div[6]/header/div/div/div/div[2]/button[1]')
-    print("fuch you")
+    search_field = driver.find_element(By.XPATH, '//*[@id="jobs-search-box-keyword-id-ember32"]')
+    search_button = driver.find_element(By.XPATH, '/html/body/div[6]/header/div/div/div/div[2]/button[1]')
 
-    country_field.clear()
-    country_field.send_keys('Sweden')
     search_field.clear()
     search_field.send_keys(search_combinations(scope))
-    search_botton.click()
+    search_button.click()
