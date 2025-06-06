@@ -21,11 +21,11 @@ class Search:
         self.scope = scope
         self.filter = filter
         self.keyword = keyword
-        self.domain = 'https://www.linkedin.com'
-        self.login_url = 'https://www.linkedin.com/login'
         self.driver = driver
         self.wait = wait
-        self.job_url = 'https://www.linkedin.com/jobs/search/?currentJobId=4239957113&origin=JOB_SEARCH_PAGE_SEARCH_BUTTON&refresh=true'
+        self.__domain = 'https://www.linkedin.com'
+        self.__login_url = 'https://www.linkedin.com/login'
+        self.__job_url = 'https://www.linkedin.com/jobs/search/?currentJobId=4239957113&origin=JOB_SEARCH_PAGE_SEARCH_BUTTON&refresh=true'
     
     def search_combinations(self):
         if not self.scope['title']:
@@ -42,8 +42,8 @@ class Search:
         else:
             return queries
         
-    def login(self):
-        self.driver.get(self.login_url)
+    def __login(self):
+        self.driver.get(self.__login_url)
 
         while True:
             current_url = self.driver.current_url
@@ -55,8 +55,8 @@ class Search:
         with open("linkedin_cookies.json", "w") as file:
             json.dump(site_cookies, file)
 
-    def go_to_job_url(self):
-        self.driver.get(self.domain)
+    def __go_to_job_url(self):
+        self.driver.get(self.__domain)
         self.driver.delete_all_cookies()
 
         try:
@@ -67,20 +67,20 @@ class Search:
                 cookie.pop('sameSite', None)
                 self.driver.add_cookie(cookie)
 
-            self.driver.get(self.job_url)
+            self.driver.get(self.__job_url)
 
             try:
                 self.driver.find_element(By.XPATH, '/html/body/div[5]/div/div/section/div/div/div/div[2]/button')
-                self.login()
-                self.go_to_job_url()
+                self.__login()
+                self.__go_to_job_url()
             except:
                 pass
         except:
-            self.login()
-            self.go_to_job_url()
+            self.__login()
+            self.__go_to_job_url()
 
     def search(self, queries):
-        self.go_to_job_url()
+        self.__go_to_job_url()
         self.search_field = self.driver.find_element(By.CSS_SELECTOR, 'input[aria-label="Search by title, skill, or company"]')
         self.search_button = self.driver.find_element(By.XPATH, '/html/body/div[6]/header/div/div/div/div[2]/button[1]')
 
@@ -93,14 +93,14 @@ class Extractor:
     def __init__(self, wait, driver):
         self.wait = wait
         self.driver = driver
-        self.scroller = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.KCUaezSbBpEYdPJAHVlUbHMAyBsqqRKAb')))
+        self.__scroller = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.KCUaezSbBpEYdPJAHVlUbHMAyBsqqRKAb')))
 
-    def load_jobs(self):
+    def __load_jobs(self):
         time.sleep(3)
         last_height = 0
         retries = 0
         while retries < 3:
-            self.driver.execute_script("arguments[0].scrollTop += 300", self.scroller)
+            self.driver.execute_script("arguments[0].scrollTop += 300", self.__scroller)
             time.sleep(1.5)
             jobs = self.driver.find_elements(By.CLASS_NAME, "job-card-container")
 
@@ -131,7 +131,7 @@ class Extractor:
             num_page = (int(eval(num)[0]*1000+eval(num)[1]) // 25) + ((int(eval(num)[0]*1000+eval(num)[1]) % 25) != 0)
 
         for _ in range(num_page):
-            jobs = self.load_jobs()
+            jobs = self.__load_jobs()
 
             for job in jobs:
                 link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
@@ -140,7 +140,7 @@ class Extractor:
                 all_jobs['Location'].append((job.text).split('\n')[3])
                 all_jobs['Link'].append(link)
 
-            self.driver.execute_script("arguments[0].scrollTop += 300", self.scroller)
+            self.driver.execute_script("arguments[0].scrollTop += 300", self.__scroller)
             try:
                 next_button = self.driver.find_element(By.CSS_SELECTOR, 'button.jobs-search-pagination__button--next')
                 next_button.click()
