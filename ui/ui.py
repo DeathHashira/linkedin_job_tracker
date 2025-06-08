@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 from pyqt6_multiselect_combobox import MultiSelectComboBox
 from PyQt6.QtCore import Qt
 from ui.data import *
+from services.linkdin_scraper import *
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -38,26 +39,36 @@ class MyWindow(QMainWindow):
         self.titles = MultiSelectComboBox()
         self.titles.addItems(linkedin_job_titles)
         self.row12 = QHBoxLayout()
-        self.row12.addWidget(QLabel('Titles'))
+        self.row12.addWidget(QLabel('Titles: '))
         self.row12.addWidget(self.titles)
-        self.row12.addWidget(QLabel('Skills'))
+        self.row12.addWidget(QLabel('Skills: '))
         self.row12.addWidget(self.skills)
         self.page1_layout.addRow(self.row12)
 
             # row three
+        self.country = QLineEdit()
+        self.country.setPlaceholderText('Default: Iran')
+        self.page1_layout.addRow(QLabel('Country: '), self.country)
+
+            # row four
         self.filter = QPushButton('Filter Jobs')
-        self.filter.clicked.connect(self.go_to_filter)
+        self.filter.clicked.connect(self.__filter_check)
         self.search = QPushButton('Search')
-        self.search.clicked.connect(self.check_scope)
+        self.search.clicked.connect(self.__check_scope)
         self.row13 = QHBoxLayout()
         self.row13.addWidget(self.search)
         self.row13.addWidget(self.filter)
         self.page1_layout.addRow(self.row13)
 
-            # row four
+            # row five
         self.check = QLabel()
         self.check.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.page1_layout.addRow(self.check)
+
+            # row six
+        self.quit = QPushButton('Quit')
+        self.quit.clicked.connect(self.__quit)
+        self.page1_layout.addRow(self.quit)
 
         # page 2 setup
             # row one
@@ -70,9 +81,6 @@ class MyWindow(QMainWindow):
         self.row21.addWidget(QLabel('Sort by: '))
         self.row21.addWidget(self.rece)
         self.row21.addWidget(self.relev)
-        self.country = QLineEdit()
-        self.row21.addWidget(QLabel('Country: '))
-        self.row21.addWidget(self.country)
         self.page2_layout.addRow(self.row21)
 
             # row two
@@ -121,8 +129,13 @@ class MyWindow(QMainWindow):
 
             # row five
         self.newsearch = QPushButton('Search')
-        self.newsearch.clicked.connect(self.go_to_search)
+        self.newsearch.clicked.connect(self.__search_with_filter)
         self.page2_layout.addRow(self.newsearch)
+
+            # row six
+        self.quit = QPushButton('Quit')
+        self.quit.clicked.connect(self.__quit)
+        self.page2_layout.addRow(self.quit)
 
         # page 3 setup
             # row one
@@ -154,21 +167,102 @@ class MyWindow(QMainWindow):
         central_widget.setLayout(self.stacked_layout)
         self.setCentralWidget(central_widget)
 
-    def check_scope(self):
+            # row five
+        self.quit = QPushButton('Quit')
+        self.quit.clicked.connect(self.__quit)
+        self.page3_layout.addRow(self.quit)
+
+    def __check_scope(self):
         if len(self.skills.currentData()) == 0 and len(self.titles.currentData()) == 0:
             self.check.setText('Please choose at least one skill or title')
         else:
-            self.go_to_search()
+            self.__go_to_search()
+            self.__search_without_filter()
 
-    def go_to_filter(self):
+    def __filter_check(self):
+        if len(self.skills.currentData()) == 0 and len(self.titles.currentData()) == 0:
+            self.check.setText('Please choose at least one skill or title')
+        elif self.country.text() == '':
+            self.check.setText('For filter, you have to choose another country')
+        else:
+            self.__go_to_filter()
+
+    def __search_without_filter(self):
+        driver = Driver()
+        my_driver = driver.init_driver()
+        my_wait = driver.init_wait(my_driver)
+
+        scope = {
+            'title':self.skills.currentData(),
+            'skill':self.titles.currentData()
+        }
+
+        new_search = Search(scope=scope, driver=my_driver, wait=my_wait)
+        search_queries = new_search.search_combinations()
+
+        new_search.search(search_queries, False, country=self.country.text())
+
+        extractor = Extractor(driver=my_driver, wait=my_wait)
+        my_jobs = extractor.extract_jobs()
+        extractor.export_jobs(my_jobs)
+        QApplication.quit()
+
+    def __search_with_filter(self):
+        self.__go_to_search()
+
+        driver = Driver()
+        my_driver = driver.init_driver()
+        my_wait = driver.init_wait(my_driver)
+
+        scope = {
+            'title':self.skills.currentData(),
+            'skill':self.titles.currentData()
+        }
+
+        scope2 = {
+            'Exprience level':self.exprience.currentData(),
+            'Job type':self.jobtype.currentData(),
+            'Remote':self.remo.currentData()
+        }
+
+        new_search = Search(scope=scope, driver=my_driver, wait=my_wait)
+        search_queries = new_search.search_combinations()
+
+        try:
+            date = self.button22.checkedButton().text()
+        except:
+            date = None
+
+        try:
+            sort = self.button21.checkedButton().text()
+        except:
+            sort = None
+
+        new_search.search(
+            search_queries, 
+            True, 
+            sort, 
+            date,
+            self.hasverification.isChecked(),
+            self.easyapply.isChecked(),
+            self.under.isChecked(),
+            scope2,
+            self.country.text()
+        )
+
+        extractor = Extractor(driver=my_driver, wait=my_wait)
+        my_jobs = extractor.extract_jobs()
+        extractor.export_jobs(my_jobs)
+        QApplication.quit()
+
+    def __go_to_filter(self):
         self.stacked_layout.setCurrentIndex(1)
 
-    def go_to_search(self):
+    def __go_to_search(self):
         self.stacked_layout.setCurrentIndex(2)
 
+    def __quit(self):
+        QApplication.quit()
 
 
-app = QApplication(sys.argv)
-window = MyWindow()
-window.show()
-sys.exit(app.exec())
+

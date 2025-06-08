@@ -73,25 +73,30 @@ class Search:
             self.__login()
             self.__go_to_job_url()
 
-    def search_filter(self, sort: str, date: str, veri: bool, easy: bool, under: bool, scope: dict, country):
+    def search_filter(self, sort: str, date: str, veri: bool, easy: bool, under: bool, scope: dict):
         filter_button = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "button.search-reusables__all-filters-pill-button")))
         filter_button.click()
 
-        self.__load_filter()
+        self.__load_filter_bar()
         self.__sort_by(sort)
         self.__date_post(date)
         self.__check_boxes(veri, easy, under)
         self.__second_scope(scope)
-        self.__country(country)
 
-    def __load_filter(self):
+    def __load_filter_bar(self):
+        time.sleep(3)
         self.parent = self.wait.until(EC.presence_of_element_located((By.XPATH, "//div[@role='dialog' and contains(@class, 'artdeco-modal')]")))
         self.__scroller = self.parent.find_element(By.XPATH, ".//div[contains(@class, 'artdeco-modal__content')]")
-
-        time.sleep(3)
+        
         for i in range(5):
             self.driver.execute_script("arguments[0].scrollTop += 300", self.__scroller)
             time.sleep(1.5)
+
+    def __load_filters(self,country):
+        self.search_button = self.driver.find_element(By.XPATH, "//button[text()='Search']")
+        self.__country(country)
+        self.search_button.click()
+
 
 
     def __sort_by(self, status):
@@ -100,8 +105,11 @@ class Search:
         elif status == 'Most recent':
             id = 'advanced-filter-sortBy-DD'
 
-        button = self.driver.find_element(By.CSS_SELECTOR, f"label[for='{id}']")
-        self.driver.execute_script("arguments[0].click();", button)
+        try:
+            button = self.driver.find_element(By.CSS_SELECTOR, f"label[for='{id}']")
+            self.driver.execute_script("arguments[0].click();", button)
+        except:
+            pass
 
     def __date_post(self, status):
         if status == 'Any time':
@@ -113,13 +121,15 @@ class Search:
         elif status == 'Past 24 hours':
             id = 'advanced-filter-timePostedRange-r86400'
         
-        button = self.driver.find_element(By.CSS_SELECTOR, f"label[for='{id}']")
-        self.driver.execute_script("arguments[0].click();", button)
+        try:
+            button = self.driver.find_element(By.CSS_SELECTOR, f"label[for='{id}']")
+            self.driver.execute_script("arguments[0].click();", button)
+        except:
+            pass
 
     def __check_boxes(self, veri, easy, under):
         h3s = self.driver.find_elements(By.XPATH, '//h3')
         for h3 in h3s:
-            print(h3.text)
             if h3.text == 'Under 10 applicants' and under == True:
                 key = self.driver.find_element(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//div[starts-with(@class, 'artdeco-toggle')]")
                 self.driver.execute_script("arguments[0].click();", key)
@@ -136,33 +146,40 @@ class Search:
         h3s = self.driver.find_elements(By.XPATH, '//h3')
         for h3 in h3s:
             if h3.text == 'Experience level':
-                items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
+                try:
+                    items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
 
-                for item in items:
-                    label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
+                    for item in items:
+                        label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
 
-                    if label in scope[h3.text]:
-                        self.driver.execute_script("arguments[0].click();", item)
-
+                        if label in scope[h3.text]:
+                            self.driver.execute_script("arguments[0].click();", item)
+                except:
+                    pass
 
             elif h3.text == 'Job type':
-                items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
+                try:
+                    items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
 
-                for item in items:
-                    label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
+                    for item in items:
+                        label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
 
-                    if label in scope[h3.text]:
-                        self.driver.execute_script("arguments[0].click();", item)
-
+                        if label in scope[h3.text]:
+                            self.driver.execute_script("arguments[0].click();", item)
+                except:
+                    pass
 
             elif h3.text == 'Remote':
-                items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
+                try:
+                    items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
 
-                for item in items:
-                    label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
+                    for item in items:
+                        label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
 
-                    if label in scope[h3.text]:
-                        self.driver.execute_script("arguments[0].click();", item)
+                        if label in scope[h3.text]:
+                            self.driver.execute_script("arguments[0].click();", item)
+                except:
+                    pass
 
 
     def __country(self, country):
@@ -172,19 +189,15 @@ class Search:
 
 
 
-    def search(self, queries, filtering: bool):
+    def search(self, queries, filtering: bool, sort=None, date=None, veri=None, easy=None, under=None, scope=None, country=None):
         self.__go_to_job_url()
         self.search_field = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[aria-label="Search by title, skill, or company"]')))
-        self.search_button = self.driver.find_element(By.XPATH, '/html/body/div[6]/header/div/div/div/div[2]/button[1]')
+        self.search_button = self.driver.find_element(By.XPATH, "//button[text()='Search']")
 
-        myscope = {
-            'Experience level':['Entry level'],
-            'Job type':['Full-time', 'Temporary'],
-            'Remote':['Remote']
-        }
+        self.__load_filters(country=country)
 
         if filtering == True:
-            self.search_filter('Most recent', 'Past month', True, True, True, myscope, 'Sweden')
+            self.search_filter(sort=sort, date=date, veri=veri, easy=easy, under=under, scope=scope)
         
         self.search_field.clear()
         self.search_field.send_keys(queries)
@@ -259,4 +272,5 @@ class Extractor:
     def export_jobs(self, jobs_dict):
         df = pd.DataFrame(jobs_dict)
         df.to_csv('job_list.csv', index=False, mode='w')
+        self.driver.close()
 
