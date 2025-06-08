@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QButtonGroup, QCheckBox, QLineEdit
     )
 from pyqt6_multiselect_combobox import MultiSelectComboBox
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from ui.data import *
 from services.linkdin_scraper import *
 
@@ -26,6 +26,8 @@ class MyWindow(QMainWindow):
         self.page1.setLayout(self.page1_layout)
         self.page2.setLayout(self.page2_layout)
         self.page3.setLayout(self.page3_layout)
+
+        self.timer = QTimer(self)
 
         # page 1 setup
             # row one
@@ -70,6 +72,11 @@ class MyWindow(QMainWindow):
         self.quit.clicked.connect(self.__quit)
         self.page1_layout.addRow(self.quit)
 
+            # row seven
+        self.login = QPushButton('Log out from account')
+        self.login.clicked.connect(self.__delete_log)
+        self.page1_layout.addRow(self.login)
+
         # page 2 setup
             # row one
         self.row21 = QHBoxLayout()
@@ -81,6 +88,9 @@ class MyWindow(QMainWindow):
         self.row21.addWidget(QLabel('Sort by: '))
         self.row21.addWidget(self.rece)
         self.row21.addWidget(self.relev)
+        self.clear_button = QPushButton('Unselect')
+        self.clear_button.clicked.connect(self.__uncheck_radio_button)
+        self.row21.addWidget(self.clear_button)
         self.page2_layout.addRow(self.row21)
 
             # row two
@@ -137,6 +147,12 @@ class MyWindow(QMainWindow):
         self.quit.clicked.connect(self.__quit)
         self.page2_layout.addRow(self.quit)
 
+            # row seven
+        self.back = QPushButton('Back to search page')
+        self.back.clicked.connect(self.__back)
+        self.page2_layout.addRow(self.back)
+
+
         # page 3 setup
             # row one
         self.start = QLabel('The process has been started')
@@ -188,6 +204,8 @@ class MyWindow(QMainWindow):
             self.__go_to_filter()
 
     def __search_without_filter(self):
+        self.__go_to_search()
+
         driver = Driver()
         my_driver = driver.init_driver()
         my_wait = driver.init_wait(my_driver)
@@ -205,7 +223,7 @@ class MyWindow(QMainWindow):
         extractor = Extractor(driver=my_driver, wait=my_wait)
         my_jobs = extractor.extract_jobs()
         extractor.export_jobs(my_jobs)
-        QApplication.quit()
+        self.__quit()
 
     def __search_with_filter(self):
         self.__go_to_search()
@@ -251,9 +269,11 @@ class MyWindow(QMainWindow):
         )
 
         extractor = Extractor(driver=my_driver, wait=my_wait)
+        self.timer.timeout.connect(self.__updated_value(extractor.global_num, extractor.global_page_num, extractor.current_page_num))
+        self.timer.start(1000)
         my_jobs = extractor.extract_jobs()
         extractor.export_jobs(my_jobs)
-        QApplication.quit()
+        self.__quit()
 
     def __go_to_filter(self):
         self.stacked_layout.setCurrentIndex(1)
@@ -264,5 +284,34 @@ class MyWindow(QMainWindow):
     def __quit(self):
         QApplication.quit()
 
+    def __delete_log(self):
+        with open("linkedin_cookies.json", "w") as file:
+            file.write("")
+        
+        self.login.setText('Logged out')
+
+    def __back(self):
+        self.stacked_layout.setCurrentIndex(0)
+
+    def __updated_value(self, total_job, total_page, current_page):
+        self.showjob.setText(f'The total number of jobs that has been found for you is {total_job}')
+        self.showpage.setText(f'Collecting jobs in page {current_page} from {total_page}')
+
+    def __uncheck_radio_button(self):
+        self.button22.setExclusive(False)
+        for btn in self.button22.buttons():
+            btn.setAutoExclusive(False)
+            btn.setChecked(False)
+            btn.setAutoExclusive(True)
+
+        self.button22.setExclusive(True)
+
+        self.button21.setExclusive(False)
+        for btn in self.button21.buttons():
+            btn.setAutoExclusive(False)
+            btn.setChecked(False)
+            btn.setAutoExclusive(True)
+
+        self.button21.setExclusive(True)
 
 

@@ -211,6 +211,9 @@ class Extractor:
         self.driver = driver
         self.parent = driver.find_element(By.CSS_SELECTOR, "div.scaffold-layout__list")
         self.__scroller = self.parent.find_element(By.XPATH, "./div[not(self::header)]")
+        self.global_num = 0
+        self.global_page_num = 0
+        self.current_page_num = 0
 
     def __load_jobs(self):
         time.sleep(3)
@@ -245,10 +248,15 @@ class Extractor:
             num, _ = num_jobs_field.text.split()
             try:
                 num_page = (int(num) // 25) + ((int(num) % 25) != 0)
+                self.global_num = int(num)
+                self.global_page_num = num_page
             except:
                 num_page = (int(eval(num)[0]*1000+eval(num)[1]) // 25) + ((int(eval(num)[0]*1000+eval(num)[1]) % 25) != 0)
+                self.global_num = eval(num)[0] * 1000 + eval(num)[1]
+                self.global_page_num = num_page
 
-            for _ in range(num_page):
+            for i in range(num_page):
+                self.current_page_num = i + 1
                 jobs = self.__load_jobs()
 
                 for job in jobs:
@@ -265,7 +273,8 @@ class Extractor:
                 except:
                     pass
         except:
-            return None
+            self.global_num = 0
+            self.global_page_num = 0
 
         return all_jobs
 

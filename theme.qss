@@ -1,0 +1,77 @@
+/* Base style for the entire app */
+QWidget {
+    background-color: #1a1a1a;  /* Dark steel-gray */
+    color: #E0E0E0;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    font-size: 14px;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #2e3b4e;  /* Steel blue-gray */
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #4e5d6c;
+}
+
+QPushButton:hover {
+    background-color: #3e4f63;
+    border: 1px solid #6c7a89;
+}
+
+/* Text fields */
+QLineEdit, QTextEdit {
+    background-color: #2a2a2a;
+    border: 1px solid #4e5d6c;
+    border-radius: 4px;
+    color: #ffffff;
+    padding: 6px;
+}
+
+QLineEdit:focus, QTextEdit:focus {
+    border: 1px solid #6c7a89;
+}
+
+/* Labels */
+QLabel {
+    color: #C0C0C0;
+}
+
+/* Combo Boxes */
+QComboBox {
+    background-color: #2a2a2a;
+    color: #ffffff;
+    border: 1px solid #4e5d6c;
+    padding: 6px;
+    border-radius: 4px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #1e1e1e;
+    border: 1px solid #4e5d6c;
+    color: white;
+    selection-background-color: #3e4f63;
+}
+
+/* Checkboxes and Radio buttons */
+QCheckBox, QRadioButton {
+    color: #CCCCCC;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    background: #1a1a1a;
+    width: 12px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #4e5d6c;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #6c7a89;
+}
