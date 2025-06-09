@@ -1,16 +1,32 @@
-import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QHBoxLayout, QWidget, QPushButton, QStackedLayout, QFormLayout, QLabel, QRadioButton, 
     QButtonGroup, QCheckBox, QLineEdit
     )
 from pyqt6_multiselect_combobox import MultiSelectComboBox
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QObject, pyqtSignal, QRunnable, pyqtSlot, QThreadPool
 from ui.data import *
 from services.linkdin_scraper import *
+
+class WorkerSignals(QObject):
+    finished = pyqtSignal()
+
+class Worker(QRunnable):
+    def __init__(self, function, *args, **kwargs):
+        super().__init__()
+        self.args = args
+        self.kwargs = kwargs
+        self.function = function
+        self.signals = WorkerSignals()
+    
+    @pyqtSlot()
+    def run(self):
+        self.function(*self.args, **self.kwargs)
 
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        self.threadpool = QThreadPool()
 
         self.setWindowTitle('Job Tracker')
         self.stacked_layout = QStackedLayout()
@@ -139,7 +155,7 @@ class MyWindow(QMainWindow):
 
             # row five
         self.newsearch = QPushButton('Search')
-        self.newsearch.clicked.connect(self.__search_with_filter)
+        self.newsearch.clicked.connect(self.__execute_filter)
         self.page2_layout.addRow(self.newsearch)
 
             # row six
@@ -193,7 +209,7 @@ class MyWindow(QMainWindow):
             self.check.setText('Please choose at least one skill or title')
         else:
             self.__go_to_search()
-            self.__search_without_filter()
+            self.__execute_no_filter()
 
     def __filter_check(self):
         if len(self.skills.currentData()) == 0 and len(self.titles.currentData()) == 0:
@@ -313,5 +329,17 @@ class MyWindow(QMainWindow):
             btn.setAutoExclusive(True)
 
         self.button21.setExclusive(True)
+
+    def __execute_no_filter(self):
+        worker = Worker(
+            self.__search_without_filter
+        )
+        self.threadpool.start(worker)
+
+    def __execute_filter(self):
+        worker = Worker(
+            self.__search_with_filter
+        )
+        self.threadpool.start(worker)
 
 

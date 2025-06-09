@@ -1,3 +1,4 @@
+import sys
 from ui.ui import *
 
 def load_stylesheet(file_path):
