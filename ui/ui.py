@@ -8,7 +8,7 @@ from ui.data import *
 from services.linkdin_scraper import *
 
 class WorkerSignals(QObject):
-    finished = pyqtSignal()
+    pass
 
 class GUISignals(QObject):
     quiting = pyqtSignal()
@@ -29,14 +29,19 @@ class Worker(QRunnable):
         self.function(*self.args, **self.kwargs)
 
 class MyWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, driver):
         super().__init__()
         self.signals = GUISignals()
         self.signals.quiting.connect(self.__quit_browser)
         self.signals.error.connect(self.__set_error)
         self.signals.update.connect(self.__updated_value)
 
+        self.driver = driver
+        self.my_driver = None
+        self.my_wait = None
+
         self.threadpool = QThreadPool()
+        self.threadpool.setMaxThreadCount(1)
 
         self.setWindowTitle('Job Tracker')
         self.stacked_layout = QStackedLayout()
@@ -235,31 +240,28 @@ class MyWindow(QMainWindow):
 
     def __search_without_filter(self):
         self.__go_to_search()
-        driver = Driver(True)
-        global my_driver
-        my_driver = driver.init_driver()
-        my_wait = driver.init_wait(my_driver)
+        self.my_driver = self.driver.init_driver()
+        self.my_wait = self.driver.init_wait(self.my_driver)
 
         scope = {
             'title':self.skills.currentData(),
             'skill':self.titles.currentData()
         }
 
-        new_search = Search(scope=scope, headless_driver=my_driver, wait=my_wait, guisignals=self.signals)
+        new_search = Search(scope=scope, headless_driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         search_queries = new_search.search_combinations()
 
         new_search.search(search_queries, False, country=self.country.text())
 
-        extractor = Extractor(driver=my_driver, wait=my_wait, guisignals=self.signals)
+        extractor = Extractor(driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
         extractor.export_jobs(my_jobs)
         self.__quit()
 
     def __search_with_filter(self):
         self.__go_to_search()
-        driver = Driver(True)
-        my_driver = driver.init_driver()
-        my_wait = driver.init_wait(my_driver)
+        self.my_driver = self.driver.init_driver()
+        self.my_wait = self.driver.init_wait(self.my_driver)
 
         scope = {
             'title':self.skills.currentData(),
@@ -272,7 +274,7 @@ class MyWindow(QMainWindow):
             'Remote':self.remo.currentData()
         }
 
-        new_search = Search(scope=scope, driver=my_driver, wait=my_wait, guisignals=self.signals)
+        new_search = Search(scope=scope, headless_driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         search_queries = new_search.search_combinations()
 
         try:
@@ -297,7 +299,7 @@ class MyWindow(QMainWindow):
             self.country.text()
         )
 
-        extractor = Extractor(driver=my_driver, wait=my_wait, guisignals=self.signals)
+        extractor = Extractor(driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
         extractor.export_jobs(my_jobs)
         self.__quit()
@@ -344,20 +346,22 @@ class MyWindow(QMainWindow):
         self.button21.setExclusive(True)
 
     def __execute_no_filter(self):
+        self.check.setText("")
         worker = Worker(
             self.__search_without_filter
         )
         self.threadpool.start(worker)
 
     def __execute_filter(self):
+        self.check.setText("")
         worker = Worker(
             self.__search_with_filter
         )
-        self.threadpool.start(worker)
+        self.threadpool.start(worker)   
 
     @pyqtSlot()
     def __quit_browser(self):
-        my_driver.close()
+        self.my_driver.close()
 
     @pyqtSlot(str)
     def __set_error(self, error):

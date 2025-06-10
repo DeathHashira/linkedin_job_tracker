@@ -15,8 +15,8 @@ class Driver:
 
     def init_driver(self):
         options = Options()
-        if self.headless:
-            options.add_argument('--headless')
+        # if self.headless:
+        #     options.add_argument('--headless')
         return webdriver.Firefox(service=Service(), options=options)
     
     def init_wait(self, driver):
@@ -25,11 +25,9 @@ class Driver:
 
 class Search:
     def __init__(self, scope, headless_driver, wait, guisignals):
-        self.driver = Driver(False)
         self.scope = scope
         self.headless_driver = headless_driver
         self.wait = wait
-        self.my_driver = self.driver.init_driver()
         self.signals = guisignals
         self.__domain = 'https://www.linkedin.com'
         self.__login_url = 'https://www.linkedin.com/login'
@@ -47,19 +45,19 @@ class Search:
         return queries
         
     def __login(self):
-        self.my_driver.get(self.__login_url)
+        self.headless_driver.get(self.__login_url)
 
         while True:
-            current_url = self.my_driver.current_url
+            current_url = self.headless_driver.current_url
             if ('login' not in current_url) and ('checkpoint' not in current_url):
                 break
             time.sleep(1)
 
-        site_cookies = self.my_driver.get_cookies()
+        site_cookies = self.headless_driver.get_cookies()
         with open("linkedin_cookies.json", "w") as file:
             json.dump(site_cookies, file)
 
-        self.my_driver.quit()
+        self.headless_driver.quit()
 
     def __go_to_job_url(self):
         self.headless_driver.get(self.__domain)
@@ -71,7 +69,7 @@ class Search:
         
             for cookie in cookies:
                 cookie.pop('sameSite', None)
-                self.driver.add_cookie(cookie)
+                self.headless_driver.add_cookie(cookie)
 
             self.headless_driver.get(self.__job_url)
 
@@ -103,11 +101,11 @@ class Search:
         self.__scroller = self.parent.find_element(By.XPATH, ".//div[contains(@class, 'artdeco-modal__content')]")
         
         for i in range(5):
-            self.driver.execute_script("arguments[0].scrollTop += 300", self.__scroller)
+            self.headless_driver.execute_script("arguments[0].scrollTop += 300", self.__scroller)
             time.sleep(1.5)
 
     def __load_filters(self,country):
-        self.search_button = self.driver.find_element(By.XPATH, "//button[text()='Search']")
+        self.search_button = self.headless_driver.find_element(By.XPATH, "//button[text()='Search']")
         self.__country(country)
         self.search_button.click()
 
@@ -120,8 +118,8 @@ class Search:
             id = 'advanced-filter-sortBy-DD'
 
         try:
-            button = self.driver.find_element(By.CSS_SELECTOR, f"label[for='{id}']")
-            self.driver.execute_script("arguments[0].click();", button)
+            button = self.headless_driver.find_element(By.CSS_SELECTOR, f"label[for='{id}']")
+            self.headless_driver.execute_script("arguments[0].click();", button)
         except:
             pass
 
@@ -136,62 +134,62 @@ class Search:
             id = 'advanced-filter-timePostedRange-r86400'
         
         try:
-            button = self.driver.find_element(By.CSS_SELECTOR, f"label[for='{id}']")
-            self.driver.execute_script("arguments[0].click();", button)
+            button = self.headless_driver.find_element(By.CSS_SELECTOR, f"label[for='{id}']")
+            self.headless_driver.execute_script("arguments[0].click();", button)
         except:
             pass
 
     def __check_boxes(self, veri, easy, under):
-        h3s = self.driver.find_elements(By.XPATH, '//h3')
+        h3s = self.headless_driver.find_elements(By.XPATH, '//h3')
         for h3 in h3s:
             if h3.text == 'Under 10 applicants' and under == True:
-                key = self.driver.find_element(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//div[starts-with(@class, 'artdeco-toggle')]")
-                self.driver.execute_script("arguments[0].click();", key)
+                key = self.headless_driver.find_element(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//div[starts-with(@class, 'artdeco-toggle')]")
+                self.headless_driver.execute_script("arguments[0].click();", key)
 
             elif h3.text == 'Has verifications' and veri == True:
-                key = self.driver.find_element(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//div[starts-with(@class, 'artdeco-toggle')]")
-                self.driver.execute_script("arguments[0].click();", key)
+                key = self.headless_driver.find_element(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//div[starts-with(@class, 'artdeco-toggle')]")
+                self.headless_driver.execute_script("arguments[0].click();", key)
 
             elif h3.text == 'Easy Apply' and easy == True:
-                key = self.driver.find_element(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//div[starts-with(@class, 'artdeco-toggle')]")
-                self.driver.execute_script("arguments[0].click();", key)
+                key = self.headless_driver.find_element(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//div[starts-with(@class, 'artdeco-toggle')]")
+                self.headless_driver.execute_script("arguments[0].click();", key)
 
     def __second_scope(self, scope):
-        h3s = self.driver.find_elements(By.XPATH, '//h3')
+        h3s = self.headless_driver.find_elements(By.XPATH, '//h3')
         for h3 in h3s:
             if h3.text == 'Experience level':
                 try:
-                    items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
+                    items = self.headless_driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
 
                     for item in items:
                         label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
 
                         if label in scope[h3.text]:
-                            self.driver.execute_script("arguments[0].click();", item)
+                            self.headless_driver.execute_script("arguments[0].click();", item)
                 except:
                     pass
 
             elif h3.text == 'Job type':
                 try:
-                    items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
+                    items = self.headless_driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
 
                     for item in items:
                         label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
 
                         if label in scope[h3.text]:
-                            self.driver.execute_script("arguments[0].click();", item)
+                            self.headless_driver.execute_script("arguments[0].click();", item)
                 except:
                     pass
 
             elif h3.text == 'Remote':
                 try:
-                    items = self.driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
+                    items = self.headless_driver.find_elements(By.XPATH, f"//h3[normalize-space()='{h3.text}']/ancestor::fieldset//label")
 
                     for item in items:
                         label = item.find_element(By.CSS_SELECTOR, "label span[aria-hidden='true']").text.strip()
 
                         if label in scope[h3.text]:
-                            self.driver.execute_script("arguments[0].click();", item)
+                            self.headless_driver.execute_script("arguments[0].click();", item)
                 except:
                     pass
 
@@ -206,14 +204,15 @@ class Search:
     def search(self, queries, filtering: bool, sort=None, date=None, veri=None, easy=None, under=None, scope=None, country=None):
         self.__go_to_job_url()
         self.search_field = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[aria-label="Search by title, skill, or company"]')))
-        self.search_button = self.driver.find_element(By.XPATH, "//button[text()='Search']")
+        self.search_button = self.headless_driver.find_element(By.XPATH, "//button[text()='Search']")
         self.signals.error.emit('')
-
+        
         self.__load_filters(country=country)
-
+        
         if filtering == True:
+            self.signals.error.emit('Adding filters...')
             self.search_filter(sort=sort, date=date, veri=veri, easy=easy, under=under, scope=scope)
-            self.signals.error.emit('Adding filters.')
+            
         
         self.search_field.clear()
         self.search_field.send_keys(queries)
@@ -302,5 +301,5 @@ class Extractor:
     def export_jobs(self, jobs_dict):
         df = pd.DataFrame(jobs_dict)
         df.to_csv('job_list.csv', index=False, mode='w')
-        self.driver.close()
+        self.driver.quit()
 
