@@ -3,12 +3,18 @@ from PyQt6.QtWidgets import (
     QButtonGroup, QCheckBox, QLineEdit
     )
 from pyqt6_multiselect_combobox import MultiSelectComboBox
-from PyQt6.QtCore import Qt, QTimer, QObject, pyqtSignal, QRunnable, pyqtSlot, QThreadPool
+from PyQt6.QtCore import Qt, QObject, pyqtSignal, QRunnable, pyqtSlot, QThreadPool
 from ui.data import *
 from services.linkdin_scraper import *
 
 class WorkerSignals(QObject):
     finished = pyqtSignal()
+
+class GUISignals(QObject):
+    quiting = pyqtSignal()
+    update = pyqtSignal(int, int, int)
+    error = pyqtSignal(str)
+
 
 class Worker(QRunnable):
     def __init__(self, function, *args, **kwargs):
@@ -25,6 +31,10 @@ class Worker(QRunnable):
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.signals = GUISignals()
+        self.signals.quiting.connect(self.__quit_browser)
+        self.signals.error.connect(self.__set_error)
+        self.signals.update.connect(self.__updated_value)
 
         self.threadpool = QThreadPool()
 
@@ -42,8 +52,6 @@ class MyWindow(QMainWindow):
         self.page1.setLayout(self.page1_layout)
         self.page2.setLayout(self.page2_layout)
         self.page3.setLayout(self.page3_layout)
-
-        self.timer = QTimer(self)
 
         # page 1 setup
             # row one
@@ -176,16 +184,21 @@ class MyWindow(QMainWindow):
         self.page3_layout.addRow(self.start)
 
             # row two
+        self.error = QLabel()
+        self.error.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.page3_layout.addRow(self.error)
+
+            # row three
         self.showjob = QLabel()
         self.showjob.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.page3_layout.addRow(self.showjob)
 
-            # row three
+            # row four
         self.showpage = QLabel()
         self.showpage.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.page3_layout.addRow(self.showpage)
 
-            # row four
+            # row five
         self.workdon = QLabel()
         self.workdon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.page3_layout.addRow(self.workdon)
@@ -199,8 +212,9 @@ class MyWindow(QMainWindow):
         central_widget.setLayout(self.stacked_layout)
         self.setCentralWidget(central_widget)
 
-            # row five
+            # row six
         self.quit = QPushButton('Quit')
+        self.quit.clicked.connect(self.signals.quiting.emit)
         self.quit.clicked.connect(self.__quit)
         self.page3_layout.addRow(self.quit)
 
@@ -221,8 +235,8 @@ class MyWindow(QMainWindow):
 
     def __search_without_filter(self):
         self.__go_to_search()
-
-        driver = Driver()
+        driver = Driver(True)
+        global my_driver
         my_driver = driver.init_driver()
         my_wait = driver.init_wait(my_driver)
 
@@ -231,20 +245,19 @@ class MyWindow(QMainWindow):
             'skill':self.titles.currentData()
         }
 
-        new_search = Search(scope=scope, driver=my_driver, wait=my_wait)
+        new_search = Search(scope=scope, headless_driver=my_driver, wait=my_wait, guisignals=self.signals)
         search_queries = new_search.search_combinations()
 
         new_search.search(search_queries, False, country=self.country.text())
 
-        extractor = Extractor(driver=my_driver, wait=my_wait)
+        extractor = Extractor(driver=my_driver, wait=my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
         extractor.export_jobs(my_jobs)
         self.__quit()
 
     def __search_with_filter(self):
         self.__go_to_search()
-
-        driver = Driver()
+        driver = Driver(True)
         my_driver = driver.init_driver()
         my_wait = driver.init_wait(my_driver)
 
@@ -259,7 +272,7 @@ class MyWindow(QMainWindow):
             'Remote':self.remo.currentData()
         }
 
-        new_search = Search(scope=scope, driver=my_driver, wait=my_wait)
+        new_search = Search(scope=scope, driver=my_driver, wait=my_wait, guisignals=self.signals)
         search_queries = new_search.search_combinations()
 
         try:
@@ -284,9 +297,7 @@ class MyWindow(QMainWindow):
             self.country.text()
         )
 
-        extractor = Extractor(driver=my_driver, wait=my_wait)
-        self.timer.timeout.connect(self.__updated_value(extractor.global_num, extractor.global_page_num, extractor.current_page_num))
-        self.timer.start(1000)
+        extractor = Extractor(driver=my_driver, wait=my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
         extractor.export_jobs(my_jobs)
         self.__quit()
@@ -309,6 +320,8 @@ class MyWindow(QMainWindow):
     def __back(self):
         self.stacked_layout.setCurrentIndex(0)
 
+
+    @pyqtSlot(int, int, int)
     def __updated_value(self, total_job, total_page, current_page):
         self.showjob.setText(f'The total number of jobs that has been found for you is {total_job}')
         self.showpage.setText(f'Collecting jobs in page {current_page} from {total_page}')
@@ -341,5 +354,13 @@ class MyWindow(QMainWindow):
             self.__search_with_filter
         )
         self.threadpool.start(worker)
+
+    @pyqtSlot()
+    def __quit_browser(self):
+        my_driver.close()
+
+    @pyqtSlot(str)
+    def __set_error(self, error):
+        self.error.setText(error)
 
 

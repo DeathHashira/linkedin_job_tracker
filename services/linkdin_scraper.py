@@ -10,17 +10,27 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 
 class Driver:
+    def __init__(self, headless):
+        self.headless = headless
+
     def init_driver(self):
-        return webdriver.Firefox(service=Service(), options=Options())
+        options = Options()
+        if self.headless:
+            options.add_argument('--headless')
+        return webdriver.Firefox(service=Service(), options=options)
     
     def init_wait(self, driver):
         return WebDriverWait(driver, 10)
 
+
 class Search:
-    def __init__(self, scope, driver, wait):
+    def __init__(self, scope, headless_driver, wait, guisignals):
+        self.driver = Driver(False)
         self.scope = scope
-        self.driver = driver
+        self.headless_driver = headless_driver
         self.wait = wait
+        self.my_driver = self.driver.init_driver()
+        self.signals = guisignals
         self.__domain = 'https://www.linkedin.com'
         self.__login_url = 'https://www.linkedin.com/login'
         self.__job_url = 'https://www.linkedin.com/jobs/search/?currentJobId=4239957113&origin=JOB_SEARCH_PAGE_SEARCH_BUTTON&refresh=true'
@@ -37,21 +47,23 @@ class Search:
         return queries
         
     def __login(self):
-        self.driver.get(self.__login_url)
+        self.my_driver.get(self.__login_url)
 
         while True:
-            current_url = self.driver.current_url
+            current_url = self.my_driver.current_url
             if ('login' not in current_url) and ('checkpoint' not in current_url):
                 break
             time.sleep(1)
 
-        site_cookies = self.driver.get_cookies()
+        site_cookies = self.my_driver.get_cookies()
         with open("linkedin_cookies.json", "w") as file:
             json.dump(site_cookies, file)
 
+        self.my_driver.quit()
+
     def __go_to_job_url(self):
-        self.driver.get(self.__domain)
-        self.driver.delete_all_cookies()
+        self.headless_driver.get(self.__domain)
+        self.headless_driver.delete_all_cookies()
 
         try:
             with open("linkedin_cookies.json", "r") as file:
@@ -61,15 +73,17 @@ class Search:
                 cookie.pop('sameSite', None)
                 self.driver.add_cookie(cookie)
 
-            self.driver.get(self.__job_url)
+            self.headless_driver.get(self.__job_url)
 
             try:
-                self.driver.find_element(By.XPATH, '/html/body/div[5]/div/div/section/div/div/div/div[2]/button')
+                self.headless_driver.find_element(By.XPATH, '/html/body/div[5]/div/div/section/div/div/div/div[2]/button')
+                self.signals.error.emit("You have to log-in into your account. Redirecting into log-in page.")
                 self.__login()
                 self.__go_to_job_url()
             except:
-                pass
+                self.signals.error.emit('Something went wrong!')
         except:
+            self.signals.error.emit("You have to log-in into your account. Redirecting into log-in page.")
             self.__login()
             self.__go_to_job_url()
 
@@ -193,24 +207,28 @@ class Search:
         self.__go_to_job_url()
         self.search_field = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[aria-label="Search by title, skill, or company"]')))
         self.search_button = self.driver.find_element(By.XPATH, "//button[text()='Search']")
+        self.signals.error.emit('')
 
         self.__load_filters(country=country)
 
         if filtering == True:
             self.search_filter(sort=sort, date=date, veri=veri, easy=easy, under=under, scope=scope)
+            self.signals.error.emit('Adding filters.')
         
         self.search_field.clear()
         self.search_field.send_keys(queries)
         self.search_button.click()
+        self.signals.error.emit('Searching through the jobs...')
         
     
 
 class Extractor:
-    def __init__(self, wait, driver):
+    def __init__(self, wait, driver, guisignals):
         self.wait = wait
         self.driver = driver
         self.parent = driver.find_element(By.CSS_SELECTOR, "div.scaffold-layout__list")
         self.__scroller = self.parent.find_element(By.XPATH, "./div[not(self::header)]")
+        self.signals = guisignals
         self.global_num = 0
         self.global_page_num = 0
         self.current_page_num = 0
@@ -250,6 +268,7 @@ class Extractor:
                 num_page = (int(num) // 25) + ((int(num) % 25) != 0)
                 self.global_num = int(num)
                 self.global_page_num = num_page
+                self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
             except:
                 num_page = (int(eval(num)[0]*1000+eval(num)[1]) // 25) + ((int(eval(num)[0]*1000+eval(num)[1]) % 25) != 0)
                 self.global_num = eval(num)[0] * 1000 + eval(num)[1]
@@ -257,6 +276,7 @@ class Extractor:
 
             for i in range(num_page):
                 self.current_page_num = i + 1
+                self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
                 jobs = self.__load_jobs()
 
                 for job in jobs:
@@ -275,6 +295,7 @@ class Extractor:
         except:
             self.global_num = 0
             self.global_page_num = 0
+            self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
 
         return all_jobs
 
