@@ -220,7 +220,6 @@ class MyWindow(QMainWindow):
             # row six
         self.quit = QPushButton('Quit')
         self.quit.clicked.connect(self.signals.quiting.emit)
-        self.quit.clicked.connect(self.__quit)
         self.page3_layout.addRow(self.quit)
 
     def __check_scope(self):
@@ -256,7 +255,9 @@ class MyWindow(QMainWindow):
         extractor = Extractor(driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
         extractor.export_jobs(my_jobs)
-        self.__quit()
+        self.workdon.setText("Done")
+        time.sleep(2)
+        self.signals.quiting.emit()
 
     def __search_with_filter(self):
         self.__go_to_search()
@@ -302,7 +303,9 @@ class MyWindow(QMainWindow):
         extractor = Extractor(driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
         extractor.export_jobs(my_jobs)
-        self.__quit()
+        self.workdon.setText("Done")
+        time.sleep(2)
+        self.signals.quiting.emit()
 
     def __go_to_filter(self):
         self.stacked_layout.setCurrentIndex(1)
@@ -362,9 +365,14 @@ class MyWindow(QMainWindow):
     @pyqtSlot()
     def __quit_browser(self):
         self.my_driver.close()
+        QApplication.quit()
 
     @pyqtSlot(str)
     def __set_error(self, error):
         self.error.setText(error)
+
+    def __done(self):
+        self.workdon.setText("Done")
+        time.sleep(2)
 
 

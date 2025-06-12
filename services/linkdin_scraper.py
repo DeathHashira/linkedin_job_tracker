@@ -2,7 +2,6 @@ import pandas as pd
 from itertools import product
 import time, json
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
@@ -57,10 +56,13 @@ class Search:
         with open("linkedin_cookies.json", "w") as file:
             json.dump(site_cookies, file)
 
-        self.headless_driver.quit()
-
     def __go_to_job_url(self):
-        self.headless_driver.get(self.__domain)
+        try:
+            self.headless_driver.get(self.__domain)
+        except:
+            self.signals.error.emit("No internet connection. pleas try again later")
+            time.sleep(5)
+            self.signals.quiting.emit()
         self.headless_driver.delete_all_cookies()
 
         try:
@@ -94,6 +96,9 @@ class Search:
         self.__date_post(date)
         self.__check_boxes(veri, easy, under)
         self.__second_scope(scope)
+
+        show_button = self.headless_driver.find_elements(By.XPATH, "//button[contains(@aria-label, 'Apply current filters')]")[0]
+        show_button.click()
 
     def __load_filter_bar(self):
         time.sleep(3)
@@ -301,5 +306,4 @@ class Extractor:
     def export_jobs(self, jobs_dict):
         df = pd.DataFrame(jobs_dict)
         df.to_csv('job_list.csv', index=False, mode='w')
-        self.driver.quit()
 
