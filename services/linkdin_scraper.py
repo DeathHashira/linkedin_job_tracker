@@ -14,8 +14,8 @@ class Driver:
 
     def init_driver(self):
         options = Options()
-        # if self.headless:
-        #     options.add_argument('--headless')
+        if self.headless:
+            options.add_argument('--headless')
         return webdriver.Firefox(service=Service(), options=options)
     
     def init_wait(self, driver):
@@ -44,17 +44,21 @@ class Search:
         return queries
         
     def __login(self):
-        self.headless_driver.get(self.__login_url)
+        no_headless_Driver = Driver(False)
+        no_headless_driver = no_headless_Driver.init_driver()
+        no_headless_driver.get(self.__login_url)
 
         while True:
-            current_url = self.headless_driver.current_url
+            current_url = no_headless_driver.current_url
             if ('login' not in current_url) and ('checkpoint' not in current_url):
                 break
             time.sleep(1)
 
-        site_cookies = self.headless_driver.get_cookies()
+        site_cookies = no_headless_driver.get_cookies()
         with open("linkedin_cookies.json", "w") as file:
             json.dump(site_cookies, file)
+        no_headless_driver.close()
+        self.signals.error.emit('Please wait for search...')
 
     def __go_to_job_url(self):
         try:
