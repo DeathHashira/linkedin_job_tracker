@@ -55,13 +55,7 @@ git clone https://github.com/DeathHashira/linkedin_job_tracker.git
 cd linkedin_job_tracker
 ```
 
-2. **Install dependencies**
-
-```bash
-pip install -r requirements.txt
-```
-
-3. **Set your credentials and driver path in the code**
+2. **Set your credentials and driver path in the code**
 
 Edit values directly in the relevant Python files (e.g., login credentials, driver path) as there is no `.env` file used.
 
