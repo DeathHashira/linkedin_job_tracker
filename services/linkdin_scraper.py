@@ -1,3 +1,7 @@
+'''
+This file is the backend of the program and handles the searching functions through selenium.
+'''
+
 import pandas as pd
 from itertools import product
 import time, json
@@ -9,6 +13,9 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 
 class Driver:
+    '''
+    The driver class that customize the driver needed for search.
+    '''
     def __init__(self, headless):
         self.headless = headless
 
@@ -23,6 +30,9 @@ class Driver:
 
 
 class Search:
+    '''
+    The main search class that creates search objects with filtering stuff, job title, and country to search through the jobs.
+    '''
     def __init__(self, scope, headless_driver, wait, guisignals):
         self.scope = scope
         self.headless_driver = headless_driver
@@ -33,6 +43,7 @@ class Search:
         self.__job_url = 'https://www.linkedin.com/jobs/search/?currentJobId=4239957113&origin=JOB_SEARCH_PAGE_SEARCH_BUTTON&refresh=true'
     
     def search_combinations(self):
+        # creates queries of search combinations from the user selected titles and skills for better search
         if not self.scope['title']:
             self.scope['title'].append('')
         if not self.scope['skill']:
@@ -44,6 +55,7 @@ class Search:
         return queries
         
     def __login(self):
+        # the login process if the user cookies hasn't been saved yet
         no_headless_Driver = Driver(False)
         no_headless_driver = no_headless_Driver.init_driver()
         no_headless_driver.get(self.__login_url)
@@ -61,6 +73,7 @@ class Search:
         self.signals.error.emit('Please wait for search...')
 
     def __go_to_job_url(self):
+        # running the search url
         try:
             self.headless_driver.get(self.__domain)
         except:
@@ -92,6 +105,7 @@ class Search:
             self.__go_to_job_url()
 
     def search_filter(self, sort: str, date: str, veri: bool, easy: bool, under: bool, scope: dict):
+        # adding filters
         filter_button = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "button.search-reusables__all-filters-pill-button")))
         filter_button.click()
 
@@ -105,6 +119,7 @@ class Search:
         show_button.click()
 
     def __load_filter_bar(self):
+        # loading the filter elements by scrolling through the filter bar
         time.sleep(3)
         self.parent = self.wait.until(EC.presence_of_element_located((By.XPATH, "//div[@role='dialog' and contains(@class, 'artdeco-modal')]")))
         self.__scroller = self.parent.find_element(By.XPATH, ".//div[contains(@class, 'artdeco-modal__content')]")
@@ -117,8 +132,6 @@ class Search:
         self.search_button = self.headless_driver.find_element(By.XPATH, "//button[text()='Search']")
         self.__country(country)
         self.search_button.click()
-
-
 
     def __sort_by(self, status):
         if status == 'Most relevant':
@@ -202,15 +215,13 @@ class Search:
                 except:
                     pass
 
-
     def __country(self, country):
         country_field = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[aria-label="City, state, or zip code"]')))
         country_field.clear()
         country_field.send_keys(country)
 
-
-
     def search(self, queries, filtering: bool, sort=None, date=None, veri=None, easy=None, under=None, scope=None, country=None):
+        # main search function
         self.__go_to_job_url()
         self.search_field = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[aria-label="Search by title, skill, or company"]')))
         self.search_button = self.headless_driver.find_element(By.XPATH, "//button[text()='Search']")
@@ -231,6 +242,9 @@ class Search:
     
 
 class Extractor:
+    '''
+    The class for saving the jobs that hab been found in python dictionary and then saving it in a csv file
+    '''
     def __init__(self, wait, driver, guisignals):
         self.wait = wait
         self.driver = driver

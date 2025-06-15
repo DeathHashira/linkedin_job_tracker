@@ -1,3 +1,7 @@
+'''
+The main program that connects the backend and frontend together by creating the objects and running the program.
+'''
+
 import sys
 from ui.ui import *
 from services.linkdin_scraper import Driver

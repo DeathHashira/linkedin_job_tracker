@@ -1,3 +1,9 @@
+'''
+This file is the GUI of the program that has been written with the qt library. 
+This is the User Interface of the job tracker program.
+'''
+
+
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QHBoxLayout, QWidget, QPushButton, QStackedLayout, QFormLayout, QLabel, QRadioButton, 
     QButtonGroup, QCheckBox, QLineEdit
@@ -7,45 +13,55 @@ from PyQt6.QtCore import Qt, QObject, pyqtSignal, QRunnable, pyqtSlot, QThreadPo
 from ui.data import *
 from services.linkdin_scraper import *
 
-class WorkerSignals(QObject):
-    pass
-
 class GUISignals(QObject):
+    '''
+    This class defines the signals needed to transfer data between the backend and frontend.
+    '''
     quiting = pyqtSignal()
     update = pyqtSignal(int, int, int)
     error = pyqtSignal(str)
 
 
 class Worker(QRunnable):
+    '''
+    This class is the worker class which is a subthread of the main thread that runs the GUI.
+    the functionality of it is for running the search function through selenium from this thread so the main thread won't freeze.
+    '''
     def __init__(self, function, *args, **kwargs):
         super().__init__()
         self.args = args
         self.kwargs = kwargs
         self.function = function
-        self.signals = WorkerSignals()
-    
+        
     @pyqtSlot()
     def run(self):
         self.function(*self.args, **self.kwargs)
 
 class MyWindow(QMainWindow):
+    '''
+    The main window that handles the GUI thread and is the UI of the program.
+    '''
     def __init__(self, driver):
         super().__init__()
+        # connecting signals to the functions
         self.signals = GUISignals()
         self.signals.quiting.connect(self.__quit_browser)
         self.signals.error.connect(self.__set_error)
         self.signals.update.connect(self.__updated_value)
 
+        # initializing the driver
         self.driver = driver
         self.my_driver = None
         self.my_wait = None
 
+        # adding the threadpool for handling multiple threads
         self.threadpool = QThreadPool()
         self.threadpool.setMaxThreadCount(1)
 
         self.setWindowTitle('Job Tracker')
         self.stacked_layout = QStackedLayout()
 
+        # adding three page of the program as a widget of the main layout
         self.page1 = QWidget()
         self.page2 = QWidget()
         self.page3 = QWidget()
@@ -98,7 +114,7 @@ class MyWindow(QMainWindow):
 
             # row six
         self.quit = QPushButton('Quit')
-        self.quit.clicked.connect(self.__quit)
+        self.quit.clicked.connect(self.__quit_browser)
         self.page1_layout.addRow(self.quit)
 
             # row seven
@@ -173,7 +189,7 @@ class MyWindow(QMainWindow):
 
             # row six
         self.quit = QPushButton('Quit')
-        self.quit.clicked.connect(self.__quit)
+        self.quit.clicked.connect(self.__quit_browser)
         self.page2_layout.addRow(self.quit)
 
             # row seven
@@ -223,6 +239,7 @@ class MyWindow(QMainWindow):
         self.page3_layout.addRow(self.quit)
 
     def __check_scope(self):
+        # checks if the user has entered the blocks
         if len(self.skills.currentData()) == 0 and len(self.titles.currentData()) == 0:
             self.check.setText('Please choose at least one skill or title')
         else:
@@ -230,6 +247,7 @@ class MyWindow(QMainWindow):
             self.__execute_no_filter()
 
     def __filter_check(self):
+        # chesks if the user has entered the blocks needed for filtering
         if len(self.skills.currentData()) == 0 and len(self.titles.currentData()) == 0:
             self.check.setText('Please choose at least one skill or title')
         elif self.country.text() == '':
@@ -238,6 +256,7 @@ class MyWindow(QMainWindow):
             self.__go_to_filter()
 
     def __search_without_filter(self):
+        # handles search process without using filters
         self.__go_to_search()
         self.my_driver = self.driver.init_driver()
         self.my_wait = self.driver.init_wait(self.my_driver)
@@ -260,6 +279,7 @@ class MyWindow(QMainWindow):
         self.signals.quiting.emit()
 
     def __search_with_filter(self):
+        # handles search process with using filters
         self.__go_to_search()
         self.my_driver = self.driver.init_driver()
         self.my_wait = self.driver.init_wait(self.my_driver)
@@ -313,9 +333,6 @@ class MyWindow(QMainWindow):
     def __go_to_search(self):
         self.stacked_layout.setCurrentIndex(2)
 
-    def __quit(self):
-        QApplication.quit()
-
     def __delete_log(self):
         with open("linkedin_cookies.json", "w") as file:
             file.write("")
@@ -364,15 +381,14 @@ class MyWindow(QMainWindow):
 
     @pyqtSlot()
     def __quit_browser(self):
-        self.my_driver.close()
+        try:
+            self.my_driver.close()
+        except:
+            pass
         QApplication.quit()
 
     @pyqtSlot(str)
     def __set_error(self, error):
         self.error.setText(error)
-
-    def __done(self):
-        self.workdon.setText("Done")
-        time.sleep(2)
 
 

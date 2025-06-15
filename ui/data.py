@@ -1,3 +1,7 @@
+'''
+The file for storing linkedin pre-saved stuff
+'''
+
 linkedin_job_titles = [
     "Marketing Coordinator",
     "Digital Marketing Specialist",
