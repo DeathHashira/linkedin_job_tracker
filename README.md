@@ -10,19 +10,21 @@ A Python-based tool that automates job searches on LinkedIn, extracts job listin
 linkedin_job_tracker/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                 # Entry point: runs from CLI or GUI
-│   ├── database/
-│   │   └── db.py               # Database setup & ORM models
-│   ├── scraper/
-│   │   └── linkedin_scraper.py # Contains the LinkedInJobScraper class
-│   └── ui/
-│       ├── ui_driver.py        # Provides Selenium WebDriver & WebDriverWait
-│       └── ui_main.py          # Optional PyQt6 GUI window & widgets
+│   └── main.py                 # Entry point: runs from CLI or GUI
 │
-├── tests/
-│   └── test_*                  # Unit tests for business logic
+├── services/
+│   ├── __init__.py
+│   └── linkdin_scraper.py      # Contains the LinkedInJobScraper class
+│
+├── ui/
+│   ├── __init__.py
+│   ├── data.py                 # Database setup
+│   └── ui.py                   # Optional PyQt6 GUI window & widgets
+│   
 ├── requirements.txt            # Python dependencies
-└── README.md                   # Project README (this file)
+├── README.md                   # Project README (this file)
+├── job_list.csv                # Stores jobs 
+└── linkedin_cookies.json       # Stores the cookies for login
 ```
 
 ---
