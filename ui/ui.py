@@ -205,7 +205,7 @@ class MyWindow(QMainWindow):
         self.page3_layout.addRow(self.start)
 
             # row two
-        self.error = QLabel()
+        self.error = QLabel('Wait for the process..')
         self.error.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.page3_layout.addRow(self.error)
 
