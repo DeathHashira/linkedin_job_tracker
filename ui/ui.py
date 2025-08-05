@@ -345,8 +345,8 @@ class MyWindow(QMainWindow):
 
     @pyqtSlot(int, int, int)
     def __updated_value(self, total_job, total_page, current_page):
-        self.showjob.setText(f'The total number of jobs that has been found for you is {total_job}')
-        self.showpage.setText(f'Collecting jobs in page {current_page} from {total_page}')
+        self.showjob.setText(f'The total number of jobs that have been found for you is {total_job}')
+        self.showpage.setText(f'Collecting jobs in page {current_page} of {total_page}')
 
     def __uncheck_radio_button(self):
         self.button22.setExclusive(False)
