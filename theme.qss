@@ -75,3 +75,11 @@ QScrollBar::handle:vertical {
 QScrollBar::handle:vertical:hover {
     background: #6c7a89;
 }
+
+QListWidget::item {
+        padding: 8px;
+    }
+    QListWidget {
+        font-size: 14px;
+        alternate-background-color: #332d2dff;
+    }
