@@ -6,12 +6,15 @@ This is the User Interface of the job tracker program.
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QHBoxLayout, QWidget, QPushButton, QStackedLayout, QFormLayout, QLabel, QRadioButton, 
-    QButtonGroup, QCheckBox, QLineEdit
+    QButtonGroup, QCheckBox, QLineEdit, QListWidget
     )
 from pyqt6_multiselect_combobox import MultiSelectComboBox
 from PyQt6.QtCore import Qt, QObject, pyqtSignal, QRunnable, pyqtSlot, QThreadPool
 from ui.data import *
 from services.linkdin_scraper import *
+from datetime import datetime
+from database import db
+import pyperclip
 
 class GUISignals(QObject):
     '''
@@ -54,6 +57,10 @@ class MyWindow(QMainWindow):
         self.my_driver = None
         self.my_wait = None
 
+        # initializing the cursor
+        self.the_search_id = None
+        self.total_job = None
+
         # adding the threadpool for handling multiple threads
         self.threadpool = QThreadPool()
         self.threadpool.setMaxThreadCount(1)
@@ -65,14 +72,17 @@ class MyWindow(QMainWindow):
         self.page1 = QWidget()
         self.page2 = QWidget()
         self.page3 = QWidget()
+        self.page4 = QWidget()
 
         self.page1_layout = QFormLayout()
         self.page2_layout = QFormLayout()
         self.page3_layout = QFormLayout()
+        self.page4_layout = QFormLayout()
 
         self.page1.setLayout(self.page1_layout)
         self.page2.setLayout(self.page2_layout)
         self.page3.setLayout(self.page3_layout)
+        self.page4.setLayout(self.page4_layout)
 
         # page 1 setup
             # row one
@@ -118,9 +128,14 @@ class MyWindow(QMainWindow):
         self.page1_layout.addRow(self.quit)
 
             # row seven
-        self.login = QPushButton('Log out from account')
-        self.login.clicked.connect(self.__delete_log)
-        self.page1_layout.addRow(self.login)
+        self.row17 = QHBoxLayout()
+        self.goto_list = QPushButton('My searches')
+        self.logout = QPushButton('Log out from account')
+        self.logout.clicked.connect(self.__delete_log)
+        self.goto_list.clicked.connect(self.__go_to_list)
+        self.row17.addWidget(self.goto_list)
+        self.row17.addWidget(self.logout)
+        self.page1_layout.addRow(self.row17)
 
         # page 2 setup
             # row one
@@ -224,19 +239,45 @@ class MyWindow(QMainWindow):
         self.workdon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.page3_layout.addRow(self.workdon)
 
+            # row six
+        self.quit = QPushButton('Quit')
+        self.quit.clicked.connect(self.signals.quiting.emit)
+        self.page3_layout.addRow(self.quit)
+
+        # page 4 setup
+            # row one
+        self.for_update = QPushButton('Refresh')
+        self.for_update.clicked.connect(self.__update_list)
+        self.page4_layout.addRow(self.for_update)
+        
+            # row two
+        self.list = QListWidget()
+        self.list.setAlternatingRowColors(True)
+        self.list.setWordWrap(True)
+        self.mode = 'searches'
+        self.links = []
+        self.list.itemClicked.connect(self.__show_jobs)
+        self.page4_layout.addRow(self.list)
+
+            # row three
+        self.back = QPushButton('Back to search page')
+        self.back.clicked.connect(self.__back)
+        self.page4_layout.addRow(self.back)
+
+            # row four
+        self.quit = QPushButton('Quit')
+        self.quit.clicked.connect(self.signals.quiting.emit)
+        self.page4_layout.addRow(self.quit)
+
         self.stacked_layout.addWidget(self.page1)
         self.stacked_layout.addWidget(self.page2)
         self.stacked_layout.addWidget(self.page3)
+        self.stacked_layout.addWidget(self.page4)
         self.stacked_layout.setCurrentIndex(0)
 
         central_widget = QWidget()
         central_widget.setLayout(self.stacked_layout)
         self.setCentralWidget(central_widget)
-
-            # row six
-        self.quit = QPushButton('Quit')
-        self.quit.clicked.connect(self.signals.quiting.emit)
-        self.page3_layout.addRow(self.quit)
 
     def __check_scope(self):
         # checks if the user has entered the blocks
@@ -270,13 +311,20 @@ class MyWindow(QMainWindow):
         search_queries = new_search.search_combinations()
 
         new_search.search(search_queries, False, country=self.country.text())
+        now_date = datetime.now().strftime("%Y-%m-%d-%H:%M")
+        self.the_search_id = db.new_search(name=search_queries, date=now_date)
 
+        time.sleep(5)
         extractor = Extractor(driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
-        extractor.export_jobs(my_jobs)
+        for i in range(self.total_job):
+            db.add_job(code=self.the_search_id,
+                        job_title=my_jobs['Job Title'][i], job_company=my_jobs['Company'][i],
+                        job_location=my_jobs['Location'][i], job_link=my_jobs['Link'][i])
+            
         self.workdon.setText("Done")
         time.sleep(2)
-        self.signals.quiting.emit()
+        self.__back()
 
     def __search_with_filter(self):
         # handles search process with using filters
@@ -319,19 +367,28 @@ class MyWindow(QMainWindow):
             scope2,
             self.country.text()
         )
+        now_date = datetime.now().strftime("%Y-%m-%d-%H:%M")
+        self.the_search_id = db.new_search(name=search_queries, date=now_date)
 
         extractor = Extractor(driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
-        extractor.export_jobs(my_jobs)
+        for i in range(self.total_job):
+            db.add_job(code=self.the_search_id,
+                        job_title=my_jobs['Job Title'][i], job_company=my_jobs['Company'][i],
+                        job_location=my_jobs['Location'][i], job_link=my_jobs['Link'][i])
+            
         self.workdon.setText("Done")
         time.sleep(2)
-        self.signals.quiting.emit()
+        self.__back()
 
     def __go_to_filter(self):
         self.stacked_layout.setCurrentIndex(1)
 
     def __go_to_search(self):
         self.stacked_layout.setCurrentIndex(2)
+    
+    def __go_to_list(self):
+        self.stacked_layout.setCurrentIndex(3)
 
     def __delete_log(self):
         with open("linkedin_cookies.json", "w") as file:
@@ -347,6 +404,7 @@ class MyWindow(QMainWindow):
     def __updated_value(self, total_job, total_page, current_page):
         self.showjob.setText(f'The total number of jobs that have been found for you is {total_job}')
         self.showpage.setText(f'Collecting jobs in page {current_page} of {total_page}')
+        self.total_job = total_job
 
     def __uncheck_radio_button(self):
         self.button22.setExclusive(False)
@@ -378,6 +436,28 @@ class MyWindow(QMainWindow):
             self.__search_with_filter
         )
         self.threadpool.start(worker)   
+
+    def __update_list(self):
+        self.mode = 'searches'
+        self.links.clear()
+        self.list.clear()
+        for search in db.show_searches():
+            self.list.addItem(f'{search[0]} - {search[1]}')
+
+    def __show_jobs(self, item):
+        if self.mode == 'searches':
+            self.mode = 'jobs'
+            title = item.text().split(' - ')[0]
+            
+            self.list.clear()
+            count = 1
+            for job in db.show_jobs(title):
+                self.links.append(job[3])
+                self.list.addItem(f'{count} - Job: {job[0]} - Company: {job[1]} - Location: {job[2]}')
+                count += 1
+        elif self.mode == 'jobs':
+            jobnum = int(item.text().split(' - ')[0])
+            pyperclip.copy(self.links[jobnum-1])
 
     @pyqtSlot()
     def __quit_browser(self):

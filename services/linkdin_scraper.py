@@ -41,7 +41,7 @@ class Search:
         self.__domain = 'https://www.linkedin.com'
         self.__login_url = 'https://www.linkedin.com/login'
         self.__job_url = 'https://www.linkedin.com/jobs/search/?currentJobId=4239957113&origin=JOB_SEARCH_PAGE_SEARCH_BUTTON&refresh=true'
-    
+
     def search_combinations(self):
         # creates queries of search combinations from the user selected titles and skills for better search
         if not self.scope['title']:
@@ -51,8 +51,11 @@ class Search:
 
         combinations = list(product(self.scope['title'], self.scope['skill']))
         queries = [f'{title} {skill}' for title, skill in combinations]
+        search_title = ' '
+        for query in queries:
+            search_title += f'{query} '
         
-        return queries
+        return search_title
         
     def __login(self):
         # the login process if the user cookies hasn't been saved yet
@@ -320,8 +323,4 @@ class Extractor:
             self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
 
         return all_jobs
-
-    def export_jobs(self, jobs_dict):
-        df = pd.DataFrame(jobs_dict)
-        df.to_csv('job_list.csv', index=False, mode='w')
 
