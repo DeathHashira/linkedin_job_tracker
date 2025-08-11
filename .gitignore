@@ -2,3 +2,4 @@ linkedin_cookies.json
 job_list.csv
 
 __pycache__
+*.db
