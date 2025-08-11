@@ -317,14 +317,17 @@ class MyWindow(QMainWindow):
         time.sleep(5)
         extractor = Extractor(driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
-        for i in range(self.total_job):
-            db.add_job(code=self.the_search_id,
-                        job_title=my_jobs['Job Title'][i], job_company=my_jobs['Company'][i],
-                        job_location=my_jobs['Location'][i], job_link=my_jobs['Link'][i])
-            
+        if self.total_job:
+            for i in range(self.total_job):
+                db.add_job(code=self.the_search_id,
+                            job_title=my_jobs['Job Title'][i], job_company=my_jobs['Company'][i],
+                            job_location=my_jobs['Location'][i], job_link=my_jobs['Link'][i])
+                
         self.workdon.setText("Done")
+        self.__clear_home_signals()
         time.sleep(2)
         self.__back()
+        self.__clear_search_signals()
 
     def __search_with_filter(self):
         # handles search process with using filters
@@ -372,14 +375,17 @@ class MyWindow(QMainWindow):
 
         extractor = Extractor(driver=self.my_driver, wait=self.my_wait, guisignals=self.signals)
         my_jobs = extractor.extract_jobs()
-        for i in range(self.total_job):
-            db.add_job(code=self.the_search_id,
-                        job_title=my_jobs['Job Title'][i], job_company=my_jobs['Company'][i],
-                        job_location=my_jobs['Location'][i], job_link=my_jobs['Link'][i])
-            
+        if self.total_job:
+            for i in range(self.total_job):
+                db.add_job(code=self.the_search_id,
+                            job_title=my_jobs['Job Title'][i], job_company=my_jobs['Company'][i],
+                            job_location=my_jobs['Location'][i], job_link=my_jobs['Link'][i])
+                
         self.workdon.setText("Done")
+        self.__clear_home_signals()
         time.sleep(2)
         self.__back()
+        self.__clear_search_signals()
 
     def __go_to_filter(self):
         self.stacked_layout.setCurrentIndex(1)
@@ -458,6 +464,14 @@ class MyWindow(QMainWindow):
         elif self.mode == 'jobs':
             jobnum = int(item.text().split(' - ')[0])
             pyperclip.copy(self.links[jobnum-1])
+
+    def __clear_home_signals(self):
+        self.country.clear()
+
+    def __clear_search_signals(self):
+        self.showjob.setText('')
+        self.showpage.setText('')
+        self.workdon.setText('')
 
     @pyqtSlot()
     def __quit_browser(self):
