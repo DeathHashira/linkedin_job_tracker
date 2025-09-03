@@ -11,6 +11,7 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
+from app import main
 
 class Driver:
     '''
@@ -75,8 +76,7 @@ class Search:
                 break
             time.sleep(1)
 
-        with open("linkedin_cookies.pkl", "wb") as file:
-            pickle.dump(no_headless_driver.get_cookies(), file)
+        main.save_user_pickle(no_headless_driver.get_cookies(), "cookies.pkl")
         no_headless_driver.close()
         self.signals.error.emit('Please wait for search...')
 
@@ -91,10 +91,9 @@ class Search:
         self.headless_driver.delete_all_cookies()
 
         try:
-            with open("linkedin_cookies.pkl", "rb") as file:
-                cookies = pickle.load(file)
-                for cookie in cookies:
-                    self.headless_driver.add_cookie(cookie)
+            cookies = main.load_user_pickle("cookies.pkl", default=None)
+            for cookie in cookies:
+                self.headless_driver.add_cookie(cookie)
 
             self.headless_driver.get(self.__job_url)
 
