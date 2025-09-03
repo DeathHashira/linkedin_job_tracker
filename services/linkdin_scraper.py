@@ -2,9 +2,9 @@
 This file is the backend of the program and handles the searching functions through selenium.
 '''
 
-import pandas as pd
+import pickle
 from itertools import product
-import time, json
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
@@ -65,13 +65,18 @@ class Search:
 
         while True:
             current_url = no_headless_driver.current_url
-            if ('login' not in current_url) and ('checkpoint' not in current_url):
+            if 'signup' in current_url:
+                # for sign up
+                no_headless_driver.close()
+                self.signals.error.emit("You can't Sign-Up from this app,\nplease create an account and come back later.")
+                time.sleep(5)
+                self.signals.quiting.emit()
+            elif ('login' not in current_url) and ('checkpoint' not in current_url):
                 break
             time.sleep(1)
 
-        site_cookies = no_headless_driver.get_cookies()
-        with open("linkedin_cookies.json", "w") as file:
-            json.dump(site_cookies, file)
+        with open("linkedin_cookies.pkl", "wb") as file:
+            pickle.dump(no_headless_driver.get_cookies(), file)
         no_headless_driver.close()
         self.signals.error.emit('Please wait for search...')
 
@@ -86,12 +91,10 @@ class Search:
         self.headless_driver.delete_all_cookies()
 
         try:
-            with open("linkedin_cookies.json", "r") as file:
-                cookies = json.load(file)
-        
-            for cookie in cookies:
-                cookie.pop('sameSite', None)
-                self.headless_driver.add_cookie(cookie)
+            with open("linkedin_cookies.pkl", "rb") as file:
+                cookies = pickle.load(file)
+                for cookie in cookies:
+                    self.headless_driver.add_cookie(cookie)
 
             self.headless_driver.get(self.__job_url)
 
@@ -223,7 +226,7 @@ class Search:
         country_field.clear()
         country_field.send_keys(country)
 
-    def search(self, queries, filtering: bool, sort=None, date=None, veri=None, easy=None, under=None, scope=None, country=None):
+    def search(self, queries, filtering: bool, sort=None, date=None, veri=None, easy=None, under=None, scope=None, country=None): # 514 - 524
         # main search function
         self.__go_to_job_url()
         self.search_field = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[aria-label="Search by title, skill, or company"]')))
@@ -287,40 +290,49 @@ class Extractor:
         
         time.sleep(5)
         try:
-            num_jobs_field = self.driver.find_element(By.CSS_SELECTOR, '.jobs-search-results-list__subtitle')
+            num_jobs_field = self.driver.find_element(By.XPATH, "//small[contains(@class,'jobs-search-results-list__text')]")
             num, _ = num_jobs_field.text.split()
-            try:
-                num_page = (int(num) // 25) + ((int(num) % 25) != 0)
-                self.global_num = int(num)
-                self.global_page_num = num_page
-                self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
-            except:
-                num_page = (int(eval(num)[0]*1000+eval(num)[1]) // 25) + ((int(eval(num)[0]*1000+eval(num)[1]) % 25) != 0)
-                self.global_num = eval(num)[0] * 1000 + eval(num)[1]
-                self.global_page_num = num_page
-
-            for i in range(num_page):
-                self.current_page_num = i + 1
-                self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
-                jobs = self.__load_jobs()
-
-                for job in jobs:
-                    link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
-                    all_jobs['Job Title'].append((job.text).split('\n')[0])
-                    all_jobs['Company'].append((job.text).split('\n')[2])
-                    all_jobs['Location'].append((job.text).split('\n')[3])
-                    all_jobs['Link'].append(link)
-
-                self.driver.execute_script("arguments[0].scrollTop += 300", self.__scroller)
+            if '+' in num:
+                self.signals.error.emit("too many jobs, please try again.")
+                return None
+            
+            else:
                 try:
-                    next_button = self.driver.find_element(By.CSS_SELECTOR, 'button.jobs-search-pagination__button--next')
-                    next_button.click()
+                    num_page = (int(num) // 25) + ((int(num) % 25) != 0)
+                    self.global_num = int(num)
+                    self.global_page_num = num_page
+                    self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
                 except:
-                    pass
+                    num_page = (int(eval(num)[0]*1000+eval(num)[1]) // 25) + ((int(eval(num)[0]*1000+eval(num)[1]) % 25) != 0)
+                    self.global_num = eval(num)[0] * 1000 + eval(num)[1]
+                    self.global_page_num = num_page
+
+                for i in range(num_page):
+                    self.current_page_num = i + 1
+                    self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
+                    jobs = self.__load_jobs()
+
+                    for job in jobs:
+                        link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
+                        all_jobs['Job Title'].append((job.text).split('\n')[0])
+                        all_jobs['Company'].append((job.text).split('\n')[2])
+                        all_jobs['Location'].append((job.text).split('\n')[3])
+                        all_jobs['Link'].append(link)
+
+                    self.driver.execute_script("arguments[0].scrollTop += 300", self.__scroller)
+                    try:
+                        next_button = self.driver.find_element(By.CSS_SELECTOR, 'button.jobs-search-pagination__button--next')
+                        next_button.click()
+                    except:
+                        pass
+
+                return all_jobs
+            
         except:
             self.global_num = 0
             self.global_page_num = 0
             self.signals.update.emit(self.global_num, self.global_page_num, self.current_page_num)
+        
+        return None
 
-        return all_jobs
 

@@ -246,9 +246,14 @@ class MyWindow(QMainWindow):
 
         # page 4 setup
             # row one
+        self.row41 = QHBoxLayout()
         self.for_update = QPushButton('Refresh')
+        self.for_delete = QPushButton('Delete History')
+        self.row41.addWidget(self.for_update)
+        self.row41.addWidget(self.for_delete)
         self.for_update.clicked.connect(self.__update_list)
-        self.page4_layout.addRow(self.for_update)
+        self.for_delete.clicked.connect(self.__delete_list)
+        self.page4_layout.addRow(self.row41)
         
             # row two
         self.list = QListWidget()
@@ -322,9 +327,12 @@ class MyWindow(QMainWindow):
                 db.add_job(code=self.the_search_id,
                             job_title=my_jobs['Job Title'][i], job_company=my_jobs['Company'][i],
                             job_location=my_jobs['Location'][i], job_link=my_jobs['Link'][i])
+        else:
+            db.delete_specific(self.the_search_id)
                 
         self.workdon.setText("Done")
         self.__clear_home_signals()
+        self.my_driver.close()
         time.sleep(2)
         self.__back()
         self.__clear_search_signals()
@@ -380,9 +388,12 @@ class MyWindow(QMainWindow):
                 db.add_job(code=self.the_search_id,
                             job_title=my_jobs['Job Title'][i], job_company=my_jobs['Company'][i],
                             job_location=my_jobs['Location'][i], job_link=my_jobs['Link'][i])
+        else:
+            db.delete_specific(self.the_search_id)
                 
         self.workdon.setText("Done")
         self.__clear_home_signals()
+        self.my_driver.close()
         time.sleep(2)
         self.__back()
         self.__clear_search_signals()
@@ -397,7 +408,7 @@ class MyWindow(QMainWindow):
         self.stacked_layout.setCurrentIndex(3)
 
     def __delete_log(self):
-        with open("linkedin_cookies.json", "w") as file:
+        with open("linkedin_cookies.pkl", "wb") as file:
             file.write("")
         
         self.login.setText('Logged out')
@@ -449,6 +460,9 @@ class MyWindow(QMainWindow):
         self.list.clear()
         for search in db.show_searches():
             self.list.addItem(f'{search[0]} - {search[1]}')
+
+    def __delete_list(self):
+        db.delete_data()
 
     def __show_jobs(self, item):
         if self.mode == 'searches':

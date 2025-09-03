@@ -3,3 +3,4 @@ job_list.csv
 
 __pycache__
 *.db
+*.pkl

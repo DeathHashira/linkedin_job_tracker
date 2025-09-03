@@ -53,3 +53,21 @@ def show_jobs(search_title):
 
     return cursor.fetchall()
 
+def delete_data():
+    conn = sqlite3.connect('linkedin.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        DELETE FROM searches;
+    ''')
+    cursor.execute('''
+        DELETE FROM jobs;
+    ''')
+    conn.commit()
+
+def delete_specific(search_id):
+    conn = sqlite3.connect('linkedin.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        DELETE FROM searches WHERE search_id = ?
+    ''', (search_id,))
+    conn.commit()
